@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pusat Informasi Cuaca & Gempa — SIGRA Edu</title>
+  <meta name="theme-color" content="#0ea5a4">
+  <style>
+    /* ----- Lightweight responsive styling (Gen Z aesthetic) ----- */
+    :root{
+      --accent:#06b6d4;
+      --card: rgba(255,255,255,0.92);
+      --muted:#374151;
+      --glass: rgba(255,255,255,0.35);
+      --radius:14px;
+      --maxw:980px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(135deg,#A7F3D0 0%, #93C5FD 50%, #C4B5FD 100%); color:#07203a}
+    .wrap{max-width:var(--maxw);margin:18px auto;padding:14px}
+    header{display:flex;gap:12px;align-items:center}
+    .logo{width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,#06b6d4,#3b82f6);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:20px;box-shadow:0 8px 30px rgba(3,105,161,0.12)}
+    h1{margin:0;font-size:20px}
+    .lead{margin:0;color:var(--muted);font-size:13px}
+    nav{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+    .pill{background:var(--glass);padding:8px 12px;border-radius:999px;font-size:13px;color:#05263b;border:1px solid rgba(2,6,23,0.03)}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+    @media(min-width:920px){.grid{grid-template-columns:340px 1fr}}
+    .card{background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:0 10px 30px rgba(3,7,18,0.06)}
+    .section-title{font-weight:700;margin:0;margin-bottom:6px}
+    .small{font-size:13px;color:var(--muted)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    button{background:var(--accent);border:0;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(2,6,23,0.06);color:#05263b}
+    input{padding:8px;border-radius:10px;border:1px solid #e6eef2;width:100%}
+    /* forecast canvas */
+    #chart{width:100%;height:180px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.25));display:block}
+    /* quake box */
+    .quake{padding:10px;border-radius:10px;background:linear-gradient(90deg,#fff,#f7fbff);border:1px solid rgba(6,182,212,0.06)}
+    /* footer */
+    footer{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+    /* responsive text */
+    .muted{color:var(--muted)}
+    /* floating ambient control */
+    .audio-wrap{position:fixed;right:14px;bottom:14px;background:var(--card);padding:8px;border-radius:12px;box-shadow:0 8px 30px rgba(3,7,18,0.08);display:flex;gap:8px;align-items:center;z-index:60}
+    .note{margin-top:8px;font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">S</div>
+      <div>
+        <h1>Pusat Info Cuaca & Gempa — SIGRA Edu</h1>
+        <p class="lead">Pengetahuan tentang cuaca, gempa, dan prediksi singkat (3 hari)</p>
+      </div>
+    </header>
+
+    <nav>
+      <div class="pill">Cuaca</div>
+      <div class="pill">Gempa</div>
+      <div class="pill">Edukasi</div>
+      <div class="pill">Prediksi</div>
+    </nav>
+
+    <div class="grid" style="margin-top:12px">
+      <!-- LEFT: Controls & Edu -->
+      <div>
+        <div class="card">
+          <div class="section-title">Lokasi & Prediksi</div>
+          <div class="small">Gunakan deteksi lokasi (GPS) atau masukkan koordinat. Prediksi menggunakan Open-Meteo (tanpa API key).</div>
+
+          <div class="controls" style="margin-top:10px">
+            <button id="btn-locate">Gunakan Lokasi</button>
+            <button id="btn-jombang" class="ghost">Set Jombang</button>
+          </div>
+
+          <div style="margin-top:10px">
+            <label class="small">Latitude</label>
+            <input id="lat" placeholder="-7.558">
+            <label class="small" style="margin-top:8px">Longitude</label>
+            <input id="lon" placeholder="112.233">
+            <div style="margin-top:10px;display:flex;gap:8px">
+              <button id="btn-load">Tampilkan Prediksi</button>
+              <button id="btn-refresh" class="ghost">Refresh Prediksi</button>
+            </div>
+          </div>
+
+          <div id="summary" class="small" style="margin-top:10px">Tekan <strong>Tampilkan Prediksi</strong> untuk memulai. Bila membuka dari file:// maka beberapa data mungkin diblokir. Untuk fitur real-time, deploy ke GitHub Pages.</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="section-title">Edukasi Singkat</div>
+          <div class="small" style="margin-top:8px;line-height:1.6">
+            <strong>Apa itu cuaca?</strong> — Kondisi atmosfer (udara) di tempat & waktu tertentu: suhu, kelembapan, angin, awan, hujan.<br><br>
+            <strong>Apa itu gempa?</strong> — Getaran yang dihasilkan pergeseran lempeng bumi; BMKG merilis data gempa terkini dan peringatannya.<br><br>
+            <strong>Tips keselamatan singkat:</strong> Saat gempa: berlindung, hindari kaca; Saat hujan deras: jauhi sungai/area banjir; Siapkan tas siaga.
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Forecast chart & quake -->
+      <div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="section-title">Prediksi Cuaca (3 Hari)</div>
+              <div class="small">Sumber: Open-Meteo (model open-source)</div>
+            </div>
+            <div class="small" id="loc-label">Koordinat: - , -</div>
+          </div>
+
+          <canvas id="chart"></canvas>
+          <div id="daily" class="small" style="margin-top:8px">Detail harian akan muncul di sini.</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="section-title">Gempa Terbaru</div>
+            <div class="small">Sumber: BMKG</div>
+          </div>
+          <div id="quake-box" class="quake" style="margin-top:8px">Tekan tombol <strong>Gempa Terbaru</strong> untuk mengambil data.</div>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button id="btn-quake">Gempa Terbaru (BMKG)</button>
+            <button id="btn-map" class="ghost" onclick="openMaps()">Buka Lokasi di Maps</button>
+          </div>
+          <div class="note">Jika data tidak muncul saat membuka lokal (file://), deploy ke GitHub Pages.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Oleh Arta dan Robi — SMAN Kabuh || 2025</footer>
+  </div>
+
+  <!-- floating ambient audio -->
+  <div class="audio-wrap" role="region" aria-label="Musik ambient">
+    <button id="audio-play" title="Play/Pause">▶</button>
+    <div class="small">Suasana Alam</div>
+  </div>
+
+<script>
+/* ====== Simple site JS: Open-Meteo forecast (no API key) + BMKG via corsproxy.io ====== */
+
+const el = id => document.getElementById(id);
+const DEFAULT = {lat: -7.558, lon: 112.233};
+
+// utility
+function setSummary(html){ el('summary').innerHTML = html; }
+function setCoordsLabel(lat, lon){ el('loc-label').textContent = Koordinat: ${lat.toFixed(4)} , ${lon.toFixed(4)}; }
+
+// audio control (lightweight)
+const audioUrl = 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_3bc89a21b3.mp3?filename=forest-nature-ambience-110124.mp3';
+const audio = new Audio(audioUrl);
+audio.loop = true;
+let audioPlaying = false;
+const btnAudio = el('audio-play');
+btnAudio.addEventListener('click', () => {
+  if(!audioPlaying){ audio.play().catch(()=>{}); audioPlaying=true; btnAudio.textContent='⏸'; }
+  else { audio.pause(); audioPlaying=false; btnAudio.textContent='▶'; }
+});
+
+// fetch forecast (Open-Meteo)
+async function fetchForecast(lat, lon){
+  const url = https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FJakarta;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Gagal ambil prediksi');
+  return await r.json();
+}
+
+// render a simple line chart on canvas (temps)
+function drawChart(hours, temps){
+  const c = el('chart');
+  const ctx = c.getContext('2d');
+  // resize canvas to element size (responsive)
+  const rect = c.getBoundingClientRect();
+  c.width = rect.width * devicePixelRatio;
+  c.height = rect.height * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  // clear
+  ctx.clearRect(0,0,rect.width,rect.height);
+
+  // margins
+  const pad = 16;
+  const W = rect.width - pad*2;
+  const H = rect.height - pad*2;
+
+  // pick 24 points evenly from temps (max 72h)
+  const step = Math.max(1, Math.floor(temps.length / 24));
+  const data = [];
+  for(let i=0;i<temps.length;i+=step) data.push(temps[i]);
+  const n = data.length;
+  const maxV = Math.max(...data);
+  const minV = Math.min(...data);
+
+  // axes
+  ctx.strokeStyle = 'rgba(5,38,58,0.12)';
+  ctx.lineWidth = 1;
+  // horizontal grid
+  for(let i=0;i<=4;i++){
+    const y = pad + (H/4)*i;
+    ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(pad+W,y); ctx.stroke();
+  }
+
+  // draw line
+  ctx.beginPath();
+  for(let i=0;i<n;i++){
+    const x = pad + (W*(i/(n-1)));
+    const v = data[i];
+    const y = pad + H - ((v - minV) / (maxV - minV || 1)) * H;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle = '#064e3b';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // fill gradient
+  const grad = ctx.createLinearGradient(0,pad,0,pad+H);
+  grad.addColorStop(0, 'rgba(6,182,212,0.18)');
+  grad.addColorStop(1, 'rgba(6,182,212,0.02)');
+  ctx.lineTo(pad+W, pad+H); ctx.lineTo(pad, pad+H); ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // labels (min/max)
+  ctx.fillStyle = '#05263b';
+  ctx.font = '12px system-ui';
+  ctx.fillText(${Math.round(minV)}°C, pad+4, pad+H-4);
+  ctx.fillText(${Math.round(maxV)}°C, pad+4, pad+12);
+}
+
+// show daily summary
+function showDaily(daily){
+  const lines = [];
+  for(let i=0;i<3 && i<daily.time.length;i++){
+    lines.push(${daily.time[i]} — ${daily.temperature_2m_min[i]}°C / ${daily.temperature_2m_max[i]}°C • hujan ≈ ${daily.precipitation_sum[i]} mm);
+  }
+  el('daily').innerHTML = lines.join('<br>');
+}
+
+// handle load forecast from coords
+async function loadForecast(lat, lon){
+  try{
+    setSummary('Mengambil prediksi...');
+    setCoordsLabel(lat, lon);
+    const data = await fetchForecast(lat, lon);
+    // hourly temps
+    const hours = data.hourly.time; // ISO strings
+    const temps = data.hourly.temperature_2m;
+    // draw chart
+    drawChart(hours, temps);
+    showDaily(data.daily);
+    setSummary('Prediksi berhasil diambil (Open-Meteo).');
+  }catch(err){
+    setSummary('Gagal ambil prediksi: ' + (err.message || err));
+    el('daily').textContent = 'Tidak ada data.';
+  }
+}
+
+// BMKG fetch (corsproxy)
+async function fetchBMKG(){
+  const prox = 'https://corsproxy.io/?';
+  const url = prox + encodeURIComponent('https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json');
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Gagal ambil BMKG');
+  return await r.json();
+}
+
+async function loadBMKG(){
+  try{
+    el('quake-box').textContent = 'Mengambil data gempa...';
+    const data = await fetchBMKG();
+    const g = data.Infogempa.gempa;
+    // show main info
+    el('quake-box').innerHTML = <strong>M ${g.Magnitude}</strong> — ${g.Wilayah}<br>${g.Tanggal} ${g.Jam} • Kedalaman: ${g.Kedalaman};
+    // set map button target to coords if available
+    // BMKG sometimes provides coordinates in different fields; try parse
+    let lat = null, lon = null;
+    if(g.Lintang && g.Bujur){
+      // Lintang: "7.12 LS" or "7.12 LS" etc. Convert to numeric with sign
+      const latStr = String(g.Lintang).replace(/[^\d\.,\-]/g,'').replace(',', '.');
+      const lonStr = String(g.Bujur).replace(/[^\d\.,\-]/g,'').replace(',', '.');
+      lat = parseFloat(latStr) * (String(g.Lintang).includes('LS') ? -1 : 1);
+      lon = parseFloat(lonStr) * (String(g.Bujur).includes('BB') ? 1 : (String(g.Bujur).includes('BT') ? 1 : 1));
+      // attach to global
+      window._last_quake_coords = {lat, lon};
+    }
+  }catch(err){
+    el('quake-box').textContent = 'Gagal ambil data gempa: ' + (err.message || err);
+  }
+}
+
+// maps: open google maps with last quake or current coords
+function openMaps(){
+  const q = window._last_quake_coords;
+  if(q && q.lat && q.lon){
+    window.open(https://www.google.com/maps?q=${q.lat},${q.lon}, '_blank');
+  } else {
+    alert('Belum ada koordinat gempa. Ambil data gempa atau pilih lokasi dulu.');
+  }
+}
+
+/* ====== UI events ====== */
+el('btn-jombang').addEventListener('click', ()=>{
+  el('lat').value = DEFAULT.lat; el('lon').value = DEFAULT.lon;
+  setSummary('Lokasi diset pada Jombang. Tekan Tampilkan Prediksi.');
+  setCoordsLabel(DEFAULT.lat, DEFAULT.lon);
+});
+
+el('btn-locate').addEventListener('click', ()=>{
+  if(!navigator.geolocation){ alert('Geolocation tidak didukung'); return; }
+  setSummary('Mencari lokasi... (izinkan browser)');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    el('lat').value = lat; el('lon').value = lon;
+    setCoordsLabel(lat, lon);
+    loadForecast(lat, lon);
+  }, err=>{
+    setSummary('Gagal ambil lokasi: ' + err.message);
+  }, {timeout:10000});
+});
+
+el('btn-load').addEventListener('click', ()=>{
+  const lat = parseFloat(el('lat').value);
+  const lon = parseFloat(el('lon').value);
+  if(isNaN(lat) || isNaN(lon)){ alert('Isi koordinat valid atau gunakan lokasi'); return; }
+  setCoordsLabel(lat, lon);
+  loadForecast(lat, lon);
+});
+
+el('btn-refresh').addEventListener('click', ()=>{
+  const lat = parseFloat(el('lat').value);
+  const lon = parseFloat(el('lon').value);
+  if(isNaN(lat) || isNaN(lon)){ alert('Isi koordinat valid terlebih dahulu'); return; }
+  loadForecast(lat, lon);
+});
+
+el('btn-quake').addEventListener('click', loadBMKG);
+
+// initial values
+el('lat').value = DEFAULT.lat; el('lon').value = DEFAULT.lon;
+setCoordsLabel(DEFAULT.lat, DEFAULT.lon);
+
+/* Helpful note when running locally */
+(async function tryAutoLoad(){
+  // try to autoload forecast for default coords
+  try{ await loadForecast(DEFAULT.lat, DEFAULT.lon); }catch(e){ /* ignore */ }
+})();
+
+</script>
+</body>
+</html>
