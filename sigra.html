@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Info Cuaca & Gempa — SIGRA Edu</title>
+  <style>
+    :root{
+      --card:#ffffffd9;
+      --accent:#06b6d4;
+      --muted:#374151;
+      --radius:14px;
+    }
+    html,body{margin:0;font-family:Inter,system-ui;background:linear-gradient(135deg,#A7F3D0,#93C5FD,#C4B5FD);color:#082032}
+    .wrap{max-width:900px;margin:auto;padding:16px}
+    .card{background:var(--card);padding:14px;border-radius:var(--radius);margin-top:14px;box-shadow:0 8px 20px rgba(0,0,0,0.05)}
+    button{background:var(--accent);border:0;color:white;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+    button.ghost{background:#ffffffaa;color:#082032;border:1px solid #0001}
+    .small{font-size:13px;color:var(--muted)}
+    input{padding:8px;width:100%;margin-top:5px;border-radius:10px;border:1px solid #ddd}
+    .pill{background:#ffffff55;padding:6px 12px;border-radius:999px;margin-right:6px;font-size:13px}
+    .warning{background:#ff5757;color:white;padding:10px;border-radius:10px;margin-top:10px;font-size:14px;font-weight:600}
+    .good{background:#22c55e;color:white;padding:10px;border-radius:10px;margin-top:10px;font-size:14px;font-weight:600}
+    .qa-item{background:#ffffffaa;padding:10px;border-radius:12px;margin-top:10px}
+    .audio-wrap{position:fixed;bottom:12px;right:12px;background:white;padding:8px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.1)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <h2>🌤 SIGRA Edu — Info Cuaca & Gempa</h2>
+  <div class="small">Versi tanpa grafik + fitur tanya jawab + deteksi cuaca buruk</div>
+
+  <!-- PILLS -->
+  <div style="margin-top:10px">
+    <span class="pill">Cuaca</span>
+    <span class="pill">Gempa</span>
+    <span class="pill">Prediksi</span>
+    <span class="pill">Tanya–Jawab</span>
+  </div>
+
+  <!-- LOKASI -->
+  <div class="card">
+    <h3>📍 Lokasi & Prediksi</h3>
+    <div class="small">Gunakan lokasi atau isi manual koordinat.</div>
+
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="btn-locate">Gunakan Lokasi</button>
+      <button id="btn-jbg" class="ghost">Set Jombang</button>
+    </div>
+
+    <label class="small">Latitude</label>
+    <input id="lat" placeholder="-7.55">
+
+    <label class="small">Longitude</label>
+    <input id="lon" placeholder="112.23">
+
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="btn-load">Tampilkan Prediksi</button>
+    </div>
+
+    <div id="summary" class="small" style="margin-top:8px">Belum ada prediksi.</div>
+    <div id="warning-box"></div>
+  </div>
+
+  <!-- HASIL -->
+  <div class="card">
+    <h3>📅 Prediksi 3 Hari</h3>
+    <div id="daily" class="small">Belum ada data.</div>
+  </div>
+
+  <!-- GEMPA -->
+  <div class="card">
+    <h3>🌋 Gempa Terbaru (BMKG)</h3>
+    <button id="btn-quake">Ambil Data Gempa</button>
+    <div id="quake" class="small" style="margin-top:10px">Belum ada data.</div>
+  </div>
+
+  <!-- TANYA JAWAB -->
+  <div class="card">
+    <h3>❓ Tanya–Jawab Solusi Cuaca</h3>
+
+    <div class="qa-item">
+      <b>T: Kalau hujan besar, apa yang harus dilakukan?</b><br>
+      J: Hindari sungai, matikan listrik kalau banjir, dan cari tempat tinggi.
+    </div>
+
+    <div class="qa-item">
+      <b>T: Cara tahu cuaca besok bakal buruk?</b><br>
+      J: Lihat prediksi hujan tinggi, angin kencang, dan suhu ekstrem. Fitur “Deteksi Cuaca Buruk” di atas akan kasih peringatan otomatis.
+    </div>
+
+    <div class="qa-item">
+      <b>T: Kapan aman untuk aktivitas luar ruangan?</b><br>
+      J: Bila hujan & angin rendah + suhu normal (20–30°C), aman.
+    </div>
+
+  </div>
+</div>
+
+<!-- MUSIK ALAM -->
+<div class="audio-wrap">
+  <button id="audio-btn">🎵 Alam</button>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const audio = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_3bc89a21b3.mp3");
+audio.loop = true;
+let play = false;
+
+el("audio-btn").onclick = () => {
+  if(!play){ audio.play(); play=true; el("audio-btn").textContent="⏸"; }
+  else { audio.pause(); play=false; el("audio-btn").textContent="🎵 Alam"; }
+};
+
+const DEFAULT = {lat: -7.558, lon: 112.233};
+
+// FETCH CUACA
+async function fetchForecast(lat, lon){
+  const url = https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&timezone=Asia%2FJakarta;
+  return (await fetch(url)).json();
+}
+
+// TAMPIL DATA
+function showDaily(d){
+  let html = "";
+  for(let i=0;i<3;i++){
+    html += `<b>${d.time[i]}</b><br>
+    Suhu: ${d.temperature_2m_min[i]}°C – ${d.temperature_2m_max[i]}°C<br>
+    Hujan: ${d.precipitation_sum[i]} mm<br>
+    Angin: ${d.windspeed_10m_max[i]} km/j<br><br>`;
+  }
+  el("daily").innerHTML = html;
+}
+
+// DETEKSI CUACA BURUK
+function detectBadWeather(d){
+  let rain = d.precipitation_sum[0];
+  let wind = d.windspeed_10m_max[0];
+  let hot = d.temperature_2m_max[0];
+
+  let warn = [];
+
+  if(rain > 20) warn.push("Hujan sangat lebat! Siapkan jas hujan & hindari sungai.");
+  if(wind > 40) warn.push("Angin kencang! Hindari pohon besar & bangunan tua.");
+  if(hot > 34) warn.push("Cuaca panas ekstrem! Minum cukup & hindari matahari langsung.");
+
+  if(warn.length === 0){
+    el("warning-box").innerHTML = <div class="good">Cuaca aman ✔</div>;
+  } else {
+    el("warning-box").innerHTML = <div class="warning">⚠ Cuaca Buruk:<br>${warn.join("<br>")}</div>;
+  }
+}
+
+// LOAD CUACA
+async function loadForecast(lat, lon){
+  el("summary").textContent = "Mengambil data...";
+  const data = await fetchForecast(lat, lon);
+  showDaily(data.daily);
+  detectBadWeather(data.daily);
+  el("summary").textContent = "Prediksi diperbarui.";
+}
+
+// BMKG GEMPA
+async function loadQuake(){
+  const proxy = "https://corsproxy.io/?";
+  const url = proxy + encodeURIComponent("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json");
+  let d = await fetch(url).then(r=>r.json());
+  let g = d.Infogempa.gempa;
+  el("quake").innerHTML = `
+    M ${g.Magnitude}<br>
+    ${g.Wilayah}<br>
+    ${g.Tanggal} ${g.Jam}<br>
+    Kedalaman: ${g.Kedalaman}
+  `;
+}
+
+el("btn-locate").onclick = () => {
+  navigator.geolocation.getCurrentPosition(pos=>{
+    el("lat").value = pos.coords.latitude;
+    el("lon").value = pos.coords.longitude;
+    loadForecast(pos.coords.latitude, pos.coords.longitude);
+  });
+};
+
+el("btn-jbg").onclick = () => {
+  el("lat").value = DEFAULT.lat;
+  el("lon").value = DEFAULT.lon;
+};
+
+el("btn-load").onclick = () => {
+  loadForecast(parseFloat(el("lat").value), parseFloat(el("lon").value));
+};
+
+el("btn-quake").onclick = loadQuake;
+
+// set default
+el("lat").value = DEFAULT.lat;
+el("lon").value = DEFAULT.lon;
+loadForecast(DEFAULT.lat, DEFAULT.lon);
+</script>
+
+</body>
+</html>
